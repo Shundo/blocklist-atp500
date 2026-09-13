@@ -1,0 +1,5 @@
+# La block list deve restare in LF su qualunque sistema: un CRLF renderebbe
+# malformata ogni voce e l' apparato rifiuterebbe l' intero file.
+blocklist.txt text eol=lf
+*.py text eol=lf
+*.yml text eol=lf

@@ -1,0 +1,36 @@
+name: Aggiorna blocklist ATP500
+
+on:
+  schedule:
+    - cron: "20 3 * * *"   # ogni notte alle 03:20 UTC, cioe 05:20 in ora legale italiana
+  workflow_dispatch:        # consente anche l'avvio manuale dalla scheda Actions
+
+permissions:
+  contents: write
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preleva il repository
+        uses: actions/checkout@v4
+
+      - name: Predispone Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rigenera la lista dei domini
+        run: python3 genera-blocklist.py
+
+      - name: Registra le variazioni
+        run: |
+          if [ -n "$(git status --porcelain blocklist.txt)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add blocklist.txt
+            git commit -m "Aggiornamento automatico della blocklist"
+            git push
+          else
+            echo "Nessuna variazione rispetto all'esecuzione precedente."
+          fi
