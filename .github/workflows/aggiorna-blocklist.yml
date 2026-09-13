@@ -25,12 +25,21 @@ jobs:
 
       - name: Registra le variazioni
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # ultimo-controllo.txt cambia a ogni esecuzione riuscita, quindi il
+          # commit avviene sempre. E deliberato: la data pubblicata e l'unico
+          # segnale che dice se la catena e ancora viva. Il messaggio distingue
+          # i due casi per non far sembrare una rotazione cio che non lo e.
           if [ -n "$(git status --porcelain blocklist.txt)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add blocklist.txt
-            git commit -m "Aggiornamento automatico della blocklist"
+            MESSAGGIO="Aggiornamento automatico della blocklist"
+          else
+            MESSAGGIO="Verifica automatica: nessuna variazione nei domini"
+          fi
+          git add blocklist.txt ultimo-controllo.txt
+          if [ -n "$(git diff --cached --name-only)" ]; then
+            git commit -m "$MESSAGGIO"
             git push
           else
-            echo "Nessuna variazione rispetto all'esecuzione precedente."
+            echo "Nulla da registrare."
           fi

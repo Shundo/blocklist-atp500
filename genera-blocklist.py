@@ -18,6 +18,7 @@ blocca la didattica.
 Non richiede dipendenze esterne: usa solo la libreria standard.
 """
 
+import datetime
 import json
 import sys
 import urllib.request
@@ -26,6 +27,7 @@ from urllib.parse import urlparse
 
 ENDPOINT = "https://domains-tracker.server66.workers.dev/status"
 USCITA = Path(__file__).resolve().parent / "blocklist.txt"
+STATO = Path(__file__).resolve().parent / "ultimo-controllo.txt"
 TIMEOUT = 30
 
 # Pavimento assoluto. Vale da solo unicamente alla prima esecuzione, quando
@@ -271,6 +273,24 @@ def main() -> int:
     # riga in CRLF e il ritorno a capo renderebbe malformata ogni voce, facendo
     # rifiutare all'apparato l'intero file (importazione di tipo tutto o niente).
     USCITA.write_text("\n".join(ordinati) + "\n", encoding="utf-8", newline="\n")
+
+    # Indicatore di freschezza. Va scritto SOLO qui, cioe dopo che la lista
+    # e stata accettata e riscritta: se lo script rifiuta l'aggiornamento la
+    # data resta indietro, ed e proprio quello il segnale da cercare quando
+    # ci si chiede se la catena sia ancora viva. Sta in un file separato
+    # perche blocklist.txt non tollera righe che non siano domini.
+    adesso = datetime.datetime.now(datetime.timezone.utc)
+    STATO.write_text(
+        "ultimo-controllo-riuscito: "
+        + adesso.strftime("%Y-%m-%dT%H:%M:%SZ")
+        + "\ndomini: "
+        + str(len(ordinati))
+        + "\nsorgente: "
+        + ENDPOINT
+        + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
     nuovi = sorted(domini - precedenti)
     spariti = sorted(precedenti - domini)
