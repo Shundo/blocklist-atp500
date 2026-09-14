@@ -20,6 +20,7 @@ Non richiede dipendenze esterne: usa solo la libreria standard.
 
 import datetime
 import json
+import os
 import sys
 import urllib.request
 from pathlib import Path
@@ -41,6 +42,20 @@ MASSIMO_ASSOLUTO = 5000
 
 # Soglie relative all'esecuzione precedente. Sono la protezione vera: la
 # costante assoluta non distingue 8 domini su 18 da 18 su 18.
+#
+# Hanno pero un rovescio da conoscere: se la sorgente cambiasse in modo
+# duraturo e legittimo, per esempio perdendo meta delle testate monitorate,
+# il rifiuto diventerebbe permanente e la lista resterebbe ferma per sempre,
+# perche la base del confronto non avanza mai. Un aggiornamento sbagliato si
+# vede, uno mancato no. Da qui due contromisure: ultimo-controllo.txt, la cui
+# data smette di avanzare e rende visibile lo stallo, e la variabile d'ambiente
+# qui sotto, che consente di sbloccare consapevolmente una singola esecuzione
+# dopo aver verificato a mano che la lista nuova sia buona.
+#
+#     ATP_ACCETTA_VARIAZIONE=1 python3 genera-blocklist.py
+#
+# Le protezioni che non vanno mai aggirate, cioe il pavimento assoluto, il
+# tetto e i domini intoccabili, restano attive anche in quel caso.
 QUOTA_MINIMA_SU_PRECEDENTE = 0.80
 FATTORE_MASSIMO_CRESCITA = 2.0
 
@@ -231,6 +246,16 @@ def verifica(domini: set[str], letti: int, scartati: int, precedenti: set[str]) 
         print("Prima esecuzione: nessuna lista precedente con cui confrontarsi.")
         return
 
+    if os.environ.get("ATP_ACCETTA_VARIAZIONE") == "1":
+        # Sblocco consapevole e valido per la sola esecuzione corrente: le
+        # soglie relative vengono saltate, quelle assolute no.
+        print(
+            "ATP_ACCETTA_VARIAZIONE=1: soglie relative ignorate per questa "
+            f"esecuzione ({len(precedenti)} domini prima, {len(domini)} ora).",
+            file=sys.stderr,
+        )
+        return
+
     minimo = int(len(precedenti) * QUOTA_MINIMA_SU_PRECEDENTE)
     if len(domini) < minimo:
         persi = sorted(precedenti - domini)
@@ -238,14 +263,17 @@ def verifica(domini: set[str], letti: int, scartati: int, precedenti: set[str]) 
             f"La lista nuova ha {len(domini)} domini contro i {len(precedenti)} "
             f"precedenti, sotto la soglia di {minimo} "
             f"({QUOTA_MINIMA_SU_PRECEDENTE:.0%}). Domini perduti: {', '.join(persi)}. "
-            "La lista non viene riscritta."
+            "La lista non viene riscritta. Se la variazione fosse legittima, "
+            "verificarla a mano e rilanciare con ATP_ACCETTA_VARIAZIONE=1."
         )
 
     massimo = int(len(precedenti) * FATTORE_MASSIMO_CRESCITA)
     if len(domini) > massimo:
         raise Guasto(
             f"La lista nuova ha {len(domini)} domini contro i {len(precedenti)} "
-            f"precedenti, oltre il massimo di {massimo}. La lista non viene riscritta."
+            f"precedenti, oltre il massimo di {massimo}. La lista non viene riscritta. "
+            "Se la variazione fosse legittima, verificarla a mano e rilanciare con "
+            "ATP_ACCETTA_VARIAZIONE=1."
         )
 
 
