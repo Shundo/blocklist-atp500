@@ -1,3 +1,3 @@
-ultimo-controllo-riuscito: 2026-09-19T08:09:22Z
+ultimo-controllo-riuscito: 2026-09-20T08:41:56Z
 domini: 18
 sorgente: https://domains-tracker.server66.workers.dev/status
