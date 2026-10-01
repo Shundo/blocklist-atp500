@@ -56,8 +56,19 @@ MASSIMO_ASSOLUTO = 5000
 #
 # Le protezioni che non vanno mai aggirate, cioe il pavimento assoluto, il
 # tetto e i domini intoccabili, restano attive anche in quel caso.
-QUOTA_MINIMA_SU_PRECEDENTE = 0.80
-FATTORE_MASSIMO_CRESCITA = 2.0
+# Sotto questa quota rispetto all'esecuzione precedente si rifiuta: e un
+# crollo, non una rotazione. Il valore era 0.80, troppo severo: il 29 settembre
+# 2026 ha bloccato per tre giorni un calo da 21 a 14 domini che era legittimo,
+# perche il tracker aveva smesso di seguire sette testate e nessun record era
+# illeggibile. La degradazione interna alla risposta e gia coperta, e meglio,
+# da QUOTA_MASSIMA_SCARTI.
+QUOTA_MINIMA_SU_PRECEDENTE = 0.50
+
+# Fra questa quota e quella sopra si procede ma si segnala con evidenza: la
+# variazione merita un'occhiata umana, non un blocco della catena.
+QUOTA_DA_SEGNALARE = 0.80
+
+FATTORE_MASSIMO_CRESCITA = 3.0
 
 # Quota massima di record che l'endpoint puo restituire in forma
 # inutilizzabile prima che si sospetti un cambio di formato anziche
@@ -256,15 +267,29 @@ def verifica(domini: set[str], letti: int, scartati: int, precedenti: set[str]) 
         )
         return
 
+    persi = sorted(precedenti - domini)
+
     minimo = int(len(precedenti) * QUOTA_MINIMA_SU_PRECEDENTE)
     if len(domini) < minimo:
-        persi = sorted(precedenti - domini)
         raise Guasto(
             f"La lista nuova ha {len(domini)} domini contro i {len(precedenti)} "
             f"precedenti, sotto la soglia di {minimo} "
-            f"({QUOTA_MINIMA_SU_PRECEDENTE:.0%}). Domini perduti: {', '.join(persi)}. "
+            f"({QUOTA_MINIMA_SU_PRECEDENTE:.0%}): e un crollo, non una rotazione. "
+            f"Domini perduti: {', '.join(persi)}. "
             "La lista non viene riscritta. Se la variazione fosse legittima, "
             "verificarla a mano e rilanciare con ATP_ACCETTA_VARIAZIONE=1."
+        )
+
+    if len(domini) < int(len(precedenti) * QUOTA_DA_SEGNALARE):
+        # Fascia intermedia: si procede, perche bloccare per giorni una
+        # rotazione legittima e peggio del rischio che si vuole evitare, ma la
+        # variazione va sotto gli occhi di qualcuno.
+        print(
+            f"ATTENZIONE: variazione ampia accettata. {len(precedenti)} domini "
+            f"prima, {len(domini)} ora. Perduti: {', '.join(persi)}. "
+            "Verificare che non siano portali ancora attivi rimasti scoperti, "
+            "e che il filtro per parola chiave ne intercetti il marchio.",
+            file=sys.stderr,
         )
 
     massimo = int(len(precedenti) * FATTORE_MASSIMO_CRESCITA)
