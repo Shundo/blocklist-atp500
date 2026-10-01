@@ -95,15 +95,21 @@ INTOCCABILI = (
     "invalsi.it",
     "agid.gov.it",
     "spid.gov.it",
-    # Registri elettronici piu diffusi
-    "madisoft.it",
-    "nuvola.madisoft.it",
-    "argosoft.it",
-    "portaleargo.it",
-    "spaggiari.eu",
-    "classeviva.it",
-    "axioscloud.it",
-    "axiositalia.it",
+    # Registri elettronici: tutti i principali, domini verificati il 1/10/2026
+    # risolvendoli e leggendo le pagine di accesso. classeviva.it non esiste:
+    # ClasseViva sta interamente su spaggiari.eu.
+    "madisoft.it",            # Nuvola
+    "scuoladigitale.info",    # Nuvola, risorse della pagina di accesso
+    "argosoft.it",            # Argo
+    "portaleargo.it",         # Argo
+    "argofamiglia.it",        # Argo, area famiglie
+    "registroelettronico.app",  # Argo
+    "campusargo.it",          # Argo
+    "spaggiari.eu",           # Spaggiari ClasseViva
+    "axioscloud.it",          # Axios
+    "axiositalia.it",         # Axios
+    "registroelettronico.com",  # Mastercom
+    "mastercom.it",           # Mastercom
     # Piattaforme didattiche e identita
     "google.com",
     "googleapis.com",
