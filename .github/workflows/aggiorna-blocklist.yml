@@ -23,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Preleva il repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Predispone Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -46,14 +46,14 @@ jobs:
           # Senza questo passo il motivo del rifiuto resta sepolto nel log
           # dello step e va cercato a mano: qui compare nella pagina del run.
           {
-            echo "## Aggiornamento rifiutato"
+            echo "## Errore inatteso dello script"
             echo
             echo '```'
             tail -n 20 uscita.txt 2>/dev/null || echo "(nessuna uscita catturata)"
             echo '```'
             echo
-            echo "Se la variazione e legittima: scheda Actions, *Run workflow*,"
-            echo "spuntare **accetta_variazione** e rilanciare."
+            echo "Lo script gestisce da se i guasti del tracker senza fallire:"
+            echo "un fallimento qui indica un errore di programma da correggere."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Registra le variazioni
@@ -69,7 +69,7 @@ jobs:
           else
             MESSAGGIO="Verifica automatica: nessuna variazione nei domini"
           fi
-          git add blocklist.txt ultimo-controllo.txt
+          git add blocklist.txt ultimo-controllo.txt registro.json
           if [ -n "$(git diff --cached --name-only)" ]; then
             git commit -m "$MESSAGGIO"
             git push

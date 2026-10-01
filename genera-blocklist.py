@@ -7,79 +7,87 @@ Il file prodotto contiene esclusivamente nomi di dominio, uno per riga,
 senza commenti e senza righe vuote: l'apparato rifiuta l'intero file se
 anche una sola voce risulta malformata.
 
-Il contenuto di questo file finisce in una configurazione di sicurezza
-senza revisione umana, a partire da un endpoint di terzi che non
-controlliamo. Le salvaguardie sotto servono a questo: rifiutare
-l'aggiornamento e lasciare intatta la lista precedente e sempre
-preferibile a scrivere una lista sbagliata, perche una lista vecchia
-blocca ancora, mentre una lista dimezzata no e una lista inquinata
-blocca la didattica.
+Tre idee reggono lo script, tutte nate dai dati osservati.
+
+1. La lista e CUMULATIVA. Un dominio non esce perche il tracker smette di
+   seguirlo: il 1 ottobre 2026, dei 21 domini usciti dalla lista in diciotto
+   giorni, 19 rispondevano ancora, quasi tutti reindirizzando al dominio
+   nuovo, e quattro servivano ancora contenuti. Un dominio esce soltanto dopo
+   GIORNI_CONSERVAZIONE giorni in cui non risulta ne nel tracker ne vivo.
+   Tenere in lista un dominio morto non costa nulla.
+
+2. I portali rivelano da se il dominio nuovo. Ogni notte si interrogano i
+   domini noti e si segue il reindirizzamento: se porta a un dominio dello
+   STESSO MARCHIO, quello entra in lista anche se il tracker non lo conosce.
+   Cosi sono emersi tanti-film.casa e cineblog01.casa, che ViewDB non segue
+   piu. Il vincolo dello stesso marchio impedisce che un reindirizzamento
+   verso un motore di ricerca o una pagina di parcheggio finisca in lista.
+
+3. Un guasto della sorgente non ferma nulla. Con la lista cumulativa un
+   tracker che si svuota non toglie niente, quindi lo script segnala e
+   prosegue senza far fallire il workflow. Rifiuta invece di AGGIUNGERE cio
+   che ha l'aria di un inquinamento: domini della pubblica amministrazione,
+   delle piattaforme legali, o crescite esplosive.
+
+File prodotti: blocklist.txt per l'apparato, registro.json con lo stato
+(prima e ultima volta che ciascun dominio e stato visto, e da quale fonte),
+ultimo-controllo.txt come indicatore di salute leggibile da una persona.
 
 Non richiede dipendenze esterne: usa solo la libreria standard.
 """
 
+import concurrent.futures
 import datetime
+import difflib
 import json
 import os
+import ssl
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
 ENDPOINT = "https://domains-tracker.server66.workers.dev/status"
-USCITA = Path(__file__).resolve().parent / "blocklist.txt"
-STATO = Path(__file__).resolve().parent / "ultimo-controllo.txt"
+CARTELLA = Path(__file__).resolve().parent
+USCITA = CARTELLA / "blocklist.txt"
+REGISTRO = CARTELLA / "registro.json"
+STATO = CARTELLA / "ultimo-controllo.txt"
 TIMEOUT = 30
 
-# Pavimento assoluto. Vale da solo unicamente alla prima esecuzione, quando
-# non esiste ancora una lista precedente con cui confrontarsi.
-MINIMO_ASSOLUTO = 5
+# Un dominio resta in lista finche risulta nel tracker o vivo, e per un anno
+# dopo l'ultima volta in cui e stato visto.
+GIORNI_CONSERVAZIONE = 365
 
-# Tetto esplicito, molto al di sotto delle 50.000 voci accettate
-# dall'apparato: oltre questo numero si e certamente davanti a un guasto
-# della sorgente e non a una crescita reale del fenomeno.
-MASSIMO_ASSOLUTO = 5000
+# Interrogazione dei domini noti per scoprire i reindirizzamenti.
+TIMEOUT_SONDA = 8
+SONDE_PARALLELE = 16
 
-# Soglie relative all'esecuzione precedente. Sono la protezione vera: la
-# costante assoluta non distingue 8 domini su 18 da 18 su 18.
-#
-# Hanno pero un rovescio da conoscere: se la sorgente cambiasse in modo
-# duraturo e legittimo, per esempio perdendo meta delle testate monitorate,
-# il rifiuto diventerebbe permanente e la lista resterebbe ferma per sempre,
-# perche la base del confronto non avanza mai. Un aggiornamento sbagliato si
-# vede, uno mancato no. Da qui due contromisure: ultimo-controllo.txt, la cui
-# data smette di avanzare e rende visibile lo stallo, e la variabile d'ambiente
-# qui sotto, che consente di sbloccare consapevolmente una singola esecuzione
-# dopo aver verificato a mano che la lista nuova sia buona.
-#
-#     ATP_ACCETTA_VARIAZIONE=1 python3 genera-blocklist.py
-#
-# Le protezioni che non vanno mai aggirate, cioe il pavimento assoluto, il
-# tetto e i domini intoccabili, restano attive anche in quel caso.
-# Sotto questa quota rispetto all'esecuzione precedente si rifiuta: e un
-# crollo, non una rotazione. Il valore era 0.80, troppo severo: il 29 settembre
-# 2026 ha bloccato per tre giorni un calo da 21 a 14 domini che era legittimo,
-# perche il tracker aveva smesso di seguire sette testate e nessun record era
-# illeggibile. La degradazione interna alla risposta e gia coperta, e meglio,
-# da QUOTA_MASSIMA_SCARTI.
-QUOTA_MINIMA_SU_PRECEDENTE = 0.50
+# Sotto questa soglia il tracker e considerato guasto e il suo contributo
+# viene ignorato per l'esecuzione corrente. Nulla viene tolto.
+MINIMO_TRACKER = 5
 
-# Fra questa quota e quella sopra si procede ma si segnala con evidenza: la
-# variazione merita un'occhiata umana, non un blocco della catena.
-QUOTA_DA_SEGNALARE = 0.80
-
-FATTORE_MASSIMO_CRESCITA = 3.0
-
-# Quota massima di record che l'endpoint puo restituire in forma
-# inutilizzabile prima che si sospetti un cambio di formato anziche
-# qualche voce sporca.
+# Quota massima di record illeggibili prima di sospettare un cambio di
+# formato della sorgente.
 QUOTA_MASSIMA_SCARTI = 0.25
 
-# Domini che non devono MAI comparire in block list. Se la sorgente ne
-# restituisce uno, si e davanti a un guasto o a un avvelenamento e lo
-# script si ferma senza toccare nulla. Il confronto e per suffisso, quindi
-# "istruzione.it" copre anche "www.istruzione.it" e i sottodomini.
-# Da estendere con i servizi effettivamente in uso nell'istituto.
+# Guardia contro l'inquinamento: oltre questo numero di domini nuovi in una
+# sola esecuzione le aggiunte vengono rifiutate. ATP_ACCETTA_VARIAZIONE=1
+# sblocca consapevolmente una singola esecuzione.
+MASSIMO_NUOVI = 25
+
+# Tetto della lista pubblicata, molto al di sotto delle 50.000 voci accettate
+# dall'apparato.
+MASSIMO_ASSOLUTO = 5000
+
+# Somiglianza minima fra le etichette di due domini perche il secondo sia
+# considerato lo stesso marchio del primo.
+SIMILARITA_MINIMA = 0.85
+
+# Domini che non devono MAI comparire in block list, confrontati per
+# suffisso: "gov.it" copre ogni sottodominio. Se la sorgente ne restituisce
+# uno, il contributo della sorgente viene rifiutato; se lo indica un
+# reindirizzamento, quel solo reindirizzamento viene ignorato.
 INTOCCABILI = (
     # Ministero e servizi pubblici
     # Pubblica amministrazione per suffisso: copre ministeri, agenzie e
@@ -136,20 +144,70 @@ INTOCCABILI = (
     "rai.tv",
 )
 
+# Piattaforme di streaming LEGALE: sulla rete Wi-Fi devono restare
+# raggiungibili, e la lista esterna si applica a entrambe le reti.
+INTOCCABILI = INTOCCABILI + (
+    "primevideo.com",
+    "amazon.com",
+    "amazon.it",
+    "media-amazon.com",
+    "aiv-cdn.net",
+    "aiv-delivery.net",
+    "netflix.com",
+    "nflxvideo.net",
+    "nflximg.net",
+    "nflxso.net",
+    "nflxext.com",
+    "disneyplus.com",
+    "disney-plus.net",
+    "bamgrid.com",
+    "mediaset.it",
+    "mediasetinfinity.it",
+    "la7.it",
+    "sky.it",
+    "nowtv.it",
+    "now.tv",
+    "dazn.com",
+    "timvision.it",
+    "paramountplus.com",
+    "twitch.tv",
+    "spotify.com",
+)
+
+# Comuni, province e regioni non hanno un suffisso comune: usano lo schema
+# comune.<nome>.<sigla>.it, provincia.<nome>.it, regione.<nome>.it. Si
+# riconoscono dall'etichetta iniziale, ristretta ai domini .it perche fuori da
+# quel suffisso la stessa parola non indica un ente italiano.
+PREFISSI_ENTI_LOCALI = ("comune.", "provincia.", "regione.", "citta.", "cittametropolitana.")
+
 VALIDI = set("abcdefghijklmnopqrstuvwxyz0123456789-.")
 
 
 class Guasto(Exception):
-    """Condizione che impone di NON riscrivere la lista."""
+    """Il contributo del tracker non e affidabile in questa esecuzione."""
 
 
-def scarica() -> dict:
-    req = urllib.request.Request(
-        ENDPOINT,
-        headers={"User-Agent": "atp500-blocklist/1.0", "Accept": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as risposta:
-        return json.loads(risposta.read().decode("utf-8"))
+# --------------------------------------------------------------------------
+# Utilita
+# --------------------------------------------------------------------------
+
+def adesso() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def oggi() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+
+
+def giorni_da(data: str) -> int:
+    return (datetime.date.fromisoformat(oggi()) - datetime.date.fromisoformat(data)).days
+
+
+def avviso(messaggio: str) -> None:
+    """Un avviso visibile senza far fallire il workflow."""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::warning::{messaggio}")
+    print(f"ATTENZIONE: {messaggio}", file=sys.stderr)
 
 
 def normalizza(url: str) -> str | None:
@@ -169,34 +227,19 @@ def normalizza(url: str) -> str | None:
         return None
     if host.startswith("www."):
         host = host[4:]
-    if not host or len(host) > 253:
-        return None
-    if set(host) - VALIDI:
+    if not host or len(host) > 253 or set(host) - VALIDI:
         return None
     etichette = host.split(".")
     if len(etichette) < 2:
         return None
     for etichetta in etichette:
-        # Ogni etichetta deve essere non vuota, lunga al massimo 63 caratteri
-        # e non puo iniziare ne finire con un trattino. Il controllo va fatto
-        # etichetta per etichetta: "foo.-bar.com" supererebbe un controllo
-        # applicato al solo nome intero.
         if not etichetta or len(etichetta) > 63:
             return None
         if etichetta.startswith("-") or etichetta.endswith("-"):
             return None
-    # Il dominio di primo livello non puo essere tutto numerico: scarta gli
-    # indirizzi IP, che nella External Block List non hanno senso.
     if etichette[-1].isdigit():
         return None
     return host
-
-
-# Comuni, province e regioni non hanno un suffisso comune: usano lo schema
-# comune.<nome>.<sigla>.it, provincia.<nome>.it, regione.<nome>.it. Si
-# riconoscono dall'etichetta iniziale, ristretta ai domini .it perche fuori da
-# quel suffisso la stessa parola non indica un ente italiano.
-PREFISSI_ENTI_LOCALI = ("comune.", "provincia.", "regione.", "citta.", "cittametropolitana.")
 
 
 def intoccabile(dominio: str) -> str | None:
@@ -211,170 +254,239 @@ def intoccabile(dominio: str) -> str | None:
     return None
 
 
-def estrai(dati) -> tuple[set[str], int, int]:
-    """Restituisce (domini, record letti, record scartati)."""
-    if not isinstance(dati, dict):
-        raise Guasto(
-            f"La sorgente ha restituito {type(dati).__name__} invece di un oggetto: "
-            "formato cambiato."
-        )
-    if not dati:
-        raise Guasto("La sorgente ha restituito un oggetto vuoto.")
+def marchio(dominio: str) -> str:
+    """L'etichetta che porta il marchio: quella prima del suffisso."""
+    parti = dominio.split(".")
+    return parti[-2] if len(parti) >= 2 else dominio
 
-    domini: set[str] = set()
-    letti = 0
-    scartati = 0
-    for testata, valori in dati.items():
-        letti += 1
-        if not isinstance(valori, dict):
-            scartati += 1
-            continue
-        dominio = normalizza(valori.get("full_url", ""))
+
+def stesso_marchio(a: str, b: str) -> bool:
+    """Vero se i due domini portano lo stesso marchio con un altro suffisso.
+
+    altadefinizione.fast e altadefinizionex.me si', perche un'etichetta
+    contiene l'altra; tanti-film.beer e tanti-film.casa si'; tanti-film.beer
+    e un motore di ricerca no.
+    """
+    x = marchio(a).replace("-", "")
+    y = marchio(b).replace("-", "")
+    if len(x) < 5 or len(y) < 5:
+        return False
+    if x in y or y in x:
+        return True
+    return difflib.SequenceMatcher(None, x, y).ratio() >= SIMILARITA_MINIMA
+
+
+# --------------------------------------------------------------------------
+# Registro
+# --------------------------------------------------------------------------
+
+def carica_registro() -> dict:
+    if REGISTRO.exists():
+        return json.loads(REGISTRO.read_text(encoding="utf-8"))
+    # Prima esecuzione con lo schema cumulativo: si parte dalla lista attuale.
+    registro = {"domini": {}, "ultimo_tracker_riuscito": None}
+    if USCITA.exists():
+        for riga in USCITA.read_text(encoding="utf-8").splitlines():
+            dominio = normalizza(riga.strip())
+            if dominio:
+                registro["domini"][dominio] = {"primo": oggi(), "ultimo": oggi(), "fonte": "lista precedente"}
+    return registro
+
+
+def salva_registro(registro: dict) -> None:
+    registro["domini"] = dict(sorted(registro["domini"].items()))
+    REGISTRO.write_text(
+        json.dumps(registro, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
+    )
+
+
+# --------------------------------------------------------------------------
+# Tracker
+# --------------------------------------------------------------------------
+
+def scarica() -> dict:
+    req = urllib.request.Request(
+        ENDPOINT,
+        headers={"User-Agent": "atp500-blocklist/2.0", "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as risposta:
+        return json.loads(risposta.read().decode("utf-8"))
+
+
+def estrai_tracker(dati) -> set[str]:
+    """I domini correnti del tracker, oppure Guasto se non sono affidabili."""
+    if not isinstance(dati, dict) or not dati:
+        raise Guasto("risposta vuota o di formato inatteso")
+    domini, scartati = set(), 0
+    for valori in dati.values():
+        dominio = normalizza(valori.get("full_url", "")) if isinstance(valori, dict) else None
         if dominio:
             domini.add(dominio)
         else:
             scartati += 1
-            print(f"  scartato: {testata} -> {valori.get('full_url', '(assente)')!r}", file=sys.stderr)
-    return domini, letti, scartati
+    if scartati / len(dati) > QUOTA_MASSIMA_SCARTI:
+        raise Guasto(f"{scartati} record illeggibili su {len(dati)}: probabile cambio di formato")
+    if len(domini) < MINIMO_TRACKER:
+        raise Guasto(f"solo {len(domini)} domini, sotto il minimo di {MINIMO_TRACKER}")
+    protetti = sorted(d for d in domini if intoccabile(d))
+    if protetti:
+        raise Guasto(f"restituiti domini protetti: {', '.join(protetti)}")
+    return domini
 
 
-def carica_precedente() -> set[str]:
-    """La lista dell'esecuzione precedente, che il checkout ha gia ripristinato."""
-    if not USCITA.exists():
-        return set()
+# --------------------------------------------------------------------------
+# Sonde: chi e vivo, e dove reindirizza
+# --------------------------------------------------------------------------
+
+# La verifica dei certificati e disattivata DI PROPOSITO e solo qui: i
+# portali usano spesso certificati irregolari, e alla sonda non interessa il
+# contenuto, che non viene letto, ma soltanto se il sito risponde e dove
+# reindirizza.
+_CONTESTO_SONDA = ssl.create_default_context()
+_CONTESTO_SONDA.check_hostname = False
+_CONTESTO_SONDA.verify_mode = ssl.CERT_NONE
+
+
+def sonda(dominio: str) -> tuple[str, bool, str | None]:
+    """Restituisce (dominio, vivo, dominio di arrivo se diverso)."""
+    req = urllib.request.Request(
+        f"https://{dominio}/", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0) Chrome/130"}
+    )
     try:
-        return {r.strip() for r in USCITA.read_text(encoding="utf-8").splitlines() if r.strip()}
-    except OSError:
-        return set()
+        with urllib.request.urlopen(req, timeout=TIMEOUT_SONDA, context=_CONTESTO_SONDA) as r:
+            arrivo = normalizza(r.geturl())
+    except urllib.error.HTTPError as e:
+        # Un 403 di una protezione anti-bot e un sito vivo; un 5xx no.
+        return dominio, e.code < 500, None
+    except Exception:
+        return dominio, False, None
+    if arrivo and arrivo != dominio and not arrivo.endswith("." + dominio) and not dominio.endswith("." + arrivo):
+        return dominio, True, arrivo
+    return dominio, True, None
 
 
-def verifica(domini: set[str], letti: int, scartati: int, precedenti: set[str]) -> None:
-    """Solleva Guasto se la lista nuova non e degna di sostituire la vecchia."""
-    if letti and scartati / letti > QUOTA_MASSIMA_SCARTI:
-        raise Guasto(
-            f"Scartati {scartati} record su {letti} "
-            f"({scartati / letti:.0%}, soglia {QUOTA_MASSIMA_SCARTI:.0%}): "
-            "probabile cambio di formato della sorgente."
+def sonda_tutti(domini: list[str]) -> dict:
+    with concurrent.futures.ThreadPoolExecutor(SONDE_PARALLELE) as esecutore:
+        return {d: (vivo, arrivo) for d, vivo, arrivo in esecutore.map(sonda, domini)}
+
+
+# --------------------------------------------------------------------------
+# Aggiornamento del registro
+# --------------------------------------------------------------------------
+
+def candidati(registro: dict, tracker: set[str], sonde: dict) -> dict:
+    """I domini da aggiungere o rinfrescare, con la fonte di ciascuno."""
+    proposte = {d: "viewdb" for d in tracker}
+    for origine, (_vivo, arrivo) in sonde.items():
+        if not arrivo or arrivo in proposte:
+            continue
+        if not stesso_marchio(origine, arrivo):
+            continue
+        if intoccabile(arrivo):
+            avviso(f"{origine} reindirizza al dominio protetto {arrivo}: ignorato")
+            continue
+        proposte[arrivo] = f"reindirizzamento da {origine}"
+    return proposte
+
+
+def aggiorna(registro: dict, proposte: dict, sonde: dict) -> list[str]:
+    """Applica proposte e sonde al registro; restituisce i domini aggiunti."""
+    domini = registro["domini"]
+    nuovi = sorted(d for d in proposte if d not in domini)
+    if len(nuovi) > MASSIMO_NUOVI and os.environ.get("ATP_ACCETTA_VARIAZIONE") != "1":
+        avviso(
+            f"{len(nuovi)} domini nuovi in una sola esecuzione, oltre il limite di {MASSIMO_NUOVI}: "
+            "aggiunte rifiutate per sospetto inquinamento. Se legittimo, rilanciare il workflow "
+            "spuntando accetta_variazione."
         )
-
-    for dominio in sorted(domini):
-        protetto = intoccabile(dominio)
-        if protetto:
-            raise Guasto(
-                f"La sorgente ha restituito {dominio!r}, che ricade sotto il dominio "
-                f"protetto {protetto!r}. Bloccarlo interromperebbe un servizio "
-                "didattico: la lista non viene riscritta."
-            )
-
-    if len(domini) < MINIMO_ASSOLUTO:
-        raise Guasto(
-            f"Estratti solo {len(domini)} domini, sotto il pavimento assoluto "
-            f"di {MINIMO_ASSOLUTO}."
-        )
-    if len(domini) > MASSIMO_ASSOLUTO:
-        raise Guasto(
-            f"Estratti {len(domini)} domini, oltre il tetto di {MASSIMO_ASSOLUTO}."
-        )
-
-    if not precedenti:
-        print("Prima esecuzione: nessuna lista precedente con cui confrontarsi.")
-        return
-
-    if os.environ.get("ATP_ACCETTA_VARIAZIONE") == "1":
-        # Sblocco consapevole e valido per la sola esecuzione corrente: le
-        # soglie relative vengono saltate, quelle assolute no.
-        print(
-            "ATP_ACCETTA_VARIAZIONE=1: soglie relative ignorate per questa "
-            f"esecuzione ({len(precedenti)} domini prima, {len(domini)} ora).",
-            file=sys.stderr,
-        )
-        return
-
-    persi = sorted(precedenti - domini)
-
-    minimo = int(len(precedenti) * QUOTA_MINIMA_SU_PRECEDENTE)
-    if len(domini) < minimo:
-        raise Guasto(
-            f"La lista nuova ha {len(domini)} domini contro i {len(precedenti)} "
-            f"precedenti, sotto la soglia di {minimo} "
-            f"({QUOTA_MINIMA_SU_PRECEDENTE:.0%}): e un crollo, non una rotazione. "
-            f"Domini perduti: {', '.join(persi)}. "
-            "La lista non viene riscritta. Se la variazione fosse legittima, "
-            "verificarla a mano e rilanciare con ATP_ACCETTA_VARIAZIONE=1."
-        )
-
-    if len(domini) < int(len(precedenti) * QUOTA_DA_SEGNALARE):
-        # Fascia intermedia: si procede, perche bloccare per giorni una
-        # rotazione legittima e peggio del rischio che si vuole evitare, ma la
-        # variazione va sotto gli occhi di qualcuno.
-        print(
-            f"ATTENZIONE: variazione ampia accettata. {len(precedenti)} domini "
-            f"prima, {len(domini)} ora. Perduti: {', '.join(persi)}. "
-            "Verificare che non siano portali ancora attivi rimasti scoperti, "
-            "e che il filtro per parola chiave ne intercetti il marchio.",
-            file=sys.stderr,
-        )
-
-    massimo = int(len(precedenti) * FATTORE_MASSIMO_CRESCITA)
-    if len(domini) > massimo:
-        raise Guasto(
-            f"La lista nuova ha {len(domini)} domini contro i {len(precedenti)} "
-            f"precedenti, oltre il massimo di {massimo}. La lista non viene riscritta. "
-            "Se la variazione fosse legittima, verificarla a mano e rilanciare con "
-            "ATP_ACCETTA_VARIAZIONE=1."
-        )
+        nuovi = []
+        proposte = {d: f for d, f in proposte.items() if d in domini}
+    for dominio, fonte in proposte.items():
+        voce = domini.setdefault(dominio, {"primo": oggi(), "fonte": fonte})
+        voce["ultimo"] = oggi()
+    for dominio, (vivo, _arrivo) in sonde.items():
+        if vivo and dominio in domini:
+            domini[dominio]["ultimo"] = oggi()
+    return nuovi
 
 
-def main() -> int:
-    try:
-        dati = scarica()
-    except Exception as errore:
-        print(f"Errore nel recupero da ViewDB: {errore}", file=sys.stderr)
-        return 1
+def pubblicabili(registro: dict) -> tuple[list[str], list[str]]:
+    """La lista da pubblicare, e i domini scaduti che ne escono."""
+    tenuti, scaduti = [], []
+    for dominio, voce in registro["domini"].items():
+        if giorni_da(voce["ultimo"]) > GIORNI_CONSERVAZIONE:
+            scaduti.append(dominio)
+        elif normalizza(dominio) == dominio and not intoccabile(dominio):
+            # Ricontrollati a ogni esecuzione: se l'elenco dei domini protetti
+            # viene esteso, un dominio gia in registro esce subito dalla lista.
+            tenuti.append(dominio)
+    for dominio in scaduti:
+        del registro["domini"][dominio]
+    if len(tenuti) > MASSIMO_ASSOLUTO:
+        avviso(f"{len(tenuti)} domini, oltre il tetto di {MASSIMO_ASSOLUTO}: pubblicati i piu recenti")
+        tenuti.sort(key=lambda d: registro["domini"][d]["ultimo"], reverse=True)
+        tenuti = tenuti[:MASSIMO_ASSOLUTO]
+    return sorted(tenuti), sorted(scaduti)
 
-    precedenti = carica_precedente()
 
-    try:
-        domini, letti, scartati = estrai(dati)
-        verifica(domini, letti, scartati, precedenti)
-    except Guasto as motivo:
-        print(f"AGGIORNAMENTO RIFIUTATO: {motivo}", file=sys.stderr)
-        return 1
-    except Exception as errore:
-        print(f"Errore inatteso nell'analisi dei dati: {errore!r}", file=sys.stderr)
-        return 1
+# --------------------------------------------------------------------------
+# Uscite
+# --------------------------------------------------------------------------
 
-    ordinati = sorted(domini)
-    # Il parametro newline e obbligatorio: su Windows write_text tradurrebbe i fine
-    # riga in CRLF e il ritorno a capo renderebbe malformata ogni voce, facendo
-    # rifiutare all'apparato l'intero file (importazione di tipo tutto o niente).
-    USCITA.write_text("\n".join(ordinati) + "\n", encoding="utf-8", newline="\n")
-
-    # Indicatore di freschezza. Va scritto SOLO qui, cioe dopo che la lista
-    # e stata accettata e riscritta: se lo script rifiuta l'aggiornamento la
-    # data resta indietro, ed e proprio quello il segnale da cercare quando
-    # ci si chiede se la catena sia ancora viva. Sta in un file separato
-    # perche blocklist.txt non tollera righe che non siano domini.
-    adesso = datetime.datetime.now(datetime.timezone.utc)
+def scrivi_uscite(lista: list[str], registro: dict, esito_tracker: str) -> None:
+    # Il parametro newline e obbligatorio: su Windows write_text tradurrebbe i
+    # fine riga in CRLF e il ritorno a capo renderebbe malformata ogni voce,
+    # facendo rifiutare all'apparato l'intero file.
+    USCITA.write_text("\n".join(lista) + "\n", encoding="utf-8", newline="\n")
+    salva_registro(registro)
     STATO.write_text(
-        "ultimo-controllo-riuscito: "
-        + adesso.strftime("%Y-%m-%dT%H:%M:%SZ")
-        + "\ndomini: "
-        + str(len(ordinati))
-        + "\nsorgente: "
-        + ENDPOINT
-        + "\n",
+        f"ultimo-controllo: {adesso()}\n"
+        f"esito-tracker: {esito_tracker}\n"
+        f"ultimo-tracker-riuscito: {registro.get('ultimo_tracker_riuscito') or 'mai'}\n"
+        f"domini-pubblicati: {len(lista)}\n"
+        f"sorgente: {ENDPOINT}\n",
         encoding="utf-8",
         newline="\n",
     )
 
-    nuovi = sorted(domini - precedenti)
-    spariti = sorted(precedenti - domini)
-    print(f"Scritti {len(ordinati)} domini in {USCITA.name} (letti {letti}, scartati {scartati})")
+
+def riassunto(lista: list[str], nuovi: list[str], scaduti: list[str], esito: str, fonti: dict) -> None:
+    righe = [
+        f"Domini pubblicati: {len(lista)}",
+        f"Tracker: {esito}",
+    ]
     if nuovi:
-        print(f"Comparsi: {', '.join(nuovi)}")
-    if spariti:
-        print(f"Spariti: {', '.join(spariti)}")
+        righe.append("Nuovi: " + ", ".join(f"{d} ({fonti.get(d, '?')})" for d in nuovi))
+    if scaduti:
+        righe.append("Scaduti dopo un anno senza segni di vita: " + ", ".join(scaduti))
+    print("\n".join(righe))
+    file_riassunto = os.environ.get("GITHUB_STEP_SUMMARY")
+    if file_riassunto:
+        with open(file_riassunto, "a", encoding="utf-8") as fh:
+            fh.write("## Aggiornamento della blocklist\n\n" + "\n\n".join(righe) + "\n")
+
+
+def main() -> int:
+    registro = carica_registro()
+
+    try:
+        tracker = estrai_tracker(scarica())
+        esito = f"ok, {len(tracker)} domini"
+        registro["ultimo_tracker_riuscito"] = adesso()
+    except Guasto as motivo:
+        tracker, esito = set(), f"ERRORE: {motivo}"
+        avviso(f"tracker ignorato in questa esecuzione ({motivo}). La lista resta quella cumulativa.")
+    except Exception as errore:
+        tracker, esito = set(), f"ERRORE: irraggiungibile ({type(errore).__name__})"
+        avviso(f"tracker irraggiungibile ({errore}). La lista resta quella cumulativa.")
+
+    sonde = sonda_tutti(sorted(set(registro["domini"]) | tracker))
+    proposte = candidati(registro, tracker, sonde)
+    nuovi = aggiorna(registro, proposte, sonde)
+    lista, scaduti = pubblicabili(registro)
+
+    scrivi_uscite(lista, registro, esito)
+    riassunto(lista, nuovi, scaduti, esito, proposte)
     return 0
 
 
