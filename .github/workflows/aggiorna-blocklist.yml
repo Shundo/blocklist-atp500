@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: "20 3 * * *"   # ogni notte alle 03:20 UTC, cioe 05:20 in ora legale italiana
   workflow_dispatch:        # consente anche l'avvio manuale dalla scheda Actions
+    inputs:
+      accetta_variazione:
+        description: >-
+          Accetta una variazione che le soglie relative rifiutano. Usare SOLO
+          dopo aver letto il messaggio di rifiuto e verificato che i domini
+          perduti corrispondano a rotazioni reali o a testate che il tracker
+          ha smesso di seguire. Pavimento, tetto e domini intoccabili restano
+          attivi anche con questa opzione.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -21,7 +31,30 @@ jobs:
           python-version: "3.12"
 
       - name: Rigenera la lista dei domini
-        run: python3 genera-blocklist.py
+        id: genera
+        env:
+          # L'input esiste solo sugli avvii manuali: sugli avvii schedulati la
+          # variabile resta vuota e le soglie restano pienamente attive.
+          ATP_ACCETTA_VARIAZIONE: ${{ inputs.accetta_variazione && '1' || '' }}
+        run: |
+          set -o pipefail
+          python3 genera-blocklist.py 2>&1 | tee uscita.txt
+
+      - name: Riporta il motivo del rifiuto nel riassunto del run
+        if: failure()
+        run: |
+          # Senza questo passo il motivo del rifiuto resta sepolto nel log
+          # dello step e va cercato a mano: qui compare nella pagina del run.
+          {
+            echo "## Aggiornamento rifiutato"
+            echo
+            echo '```'
+            tail -n 20 uscita.txt 2>/dev/null || echo "(nessuna uscita catturata)"
+            echo '```'
+            echo
+            echo "Se la variazione e legittima: scheda Actions, *Run workflow*,"
+            echo "spuntare **accetta_variazione** e rilanciare."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Registra le variazioni
         run: |
