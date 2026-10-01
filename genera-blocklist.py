@@ -82,6 +82,12 @@ QUOTA_MASSIMA_SCARTI = 0.25
 # Da estendere con i servizi effettivamente in uso nell'istituto.
 INTOCCABILI = (
     # Ministero e servizi pubblici
+    # Pubblica amministrazione per suffisso: copre ministeri, agenzie e
+    # tutto cio che sta sotto gov.it ed edu.it.
+    "gov.it",
+    "edu.it",
+    "pa.it",
+    "inps.it",
     "istruzione.it",
     "miur.it",
     "mim.gov.it",
@@ -180,11 +186,22 @@ def normalizza(url: str) -> str | None:
     return host
 
 
+# Comuni, province e regioni non hanno un suffisso comune: usano lo schema
+# comune.<nome>.<sigla>.it, provincia.<nome>.it, regione.<nome>.it. Si
+# riconoscono dall'etichetta iniziale, ristretta ai domini .it perche fuori da
+# quel suffisso la stessa parola non indica un ente italiano.
+PREFISSI_ENTI_LOCALI = ("comune.", "provincia.", "regione.", "citta.", "cittametropolitana.")
+
+
 def intoccabile(dominio: str) -> str | None:
     """Restituisce il dominio protetto corrispondente, se c'e."""
     for protetto in INTOCCABILI:
         if dominio == protetto or dominio.endswith("." + protetto):
             return protetto
+    if dominio.endswith(".it"):
+        for prefisso in PREFISSI_ENTI_LOCALI:
+            if dominio.startswith(prefisso) or ("." + prefisso) in dominio:
+                return prefisso + "*.it"
     return None
 
 
