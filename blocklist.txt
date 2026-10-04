@@ -14,6 +14,7 @@ cineblog01.watch
 cineblog01.world
 cinezo.org
 eurostream.mom
+eurostream.pics
 filmpertutti.garden
 filmsenzalimiti.study
 guardaplay.info
@@ -25,6 +26,7 @@ mapple.fun
 mapplee.com
 monochrome.tf
 streamingcommunityz.academy
+streamingcommunityz.photography
 streamingcommunityz.photos
 streamingcommunityz.pictures
 streamingcommunityz.taxi
