@@ -1,17 +1,21 @@
 altadefinizione.fast
 altadefinizionex.live
 altadefinizionex.me
+altadefinizionex.surf
 animeunity.so
 animeworld.ac
 cb01uno.club
 cb01uno.cyou
 cb01uno.homes
 cb01uno.top
+cb01uno.wiki
 cineblog001.cv
 cineblog001.download
+cineblog001.tattoo
 cineblog01.casa
 cineblog01.watch
 cineblog01.world
+cineblog01.wtf
 cinezo.org
 eurostream.mom
 eurostream.pics
@@ -29,6 +33,7 @@ streamingcommunityz.academy
 streamingcommunityz.photography
 streamingcommunityz.photos
 streamingcommunityz.pictures
+streamingcommunityz.promo
 streamingcommunityz.taxi
 streamingunity.fun
 streamingunity.win
@@ -36,5 +41,6 @@ tanti-film.beer
 tanti-film.casa
 tanti-film.makeup
 tanti-film.website
+tanti-film.work
 tantifilm.online
 toonitalia.xyz

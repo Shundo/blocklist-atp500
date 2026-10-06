@@ -2,107 +2,127 @@
  "domini": {
   "altadefinizione.fast": {
    "primo": "2026-09-16",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "altadefinizionex.live": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "altadefinizionex.me": {
    "primo": "2026-10-01",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
+  },
+  "altadefinizionex.surf": {
+   "primo": "2026-10-06",
+   "fonte": "viewdb",
+   "ultimo": "2026-10-06"
   },
   "animeunity.so": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "animeworld.ac": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "cb01uno.club": {
    "primo": "2026-10-01",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "cb01uno.cyou": {
    "primo": "2026-09-16",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "cb01uno.homes": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "cb01uno.top": {
    "primo": "2026-09-23",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
+  },
+  "cb01uno.wiki": {
+   "primo": "2026-10-06",
+   "fonte": "viewdb",
+   "ultimo": "2026-10-06"
   },
   "cineblog001.cv": {
    "primo": "2026-10-01",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "cineblog001.download": {
    "primo": "2026-09-28",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
+  },
+  "cineblog001.tattoo": {
+   "primo": "2026-10-06",
+   "fonte": "viewdb",
+   "ultimo": "2026-10-06"
   },
   "cineblog01.casa": {
    "primo": "2026-10-01",
    "fonte": "reindirizzamento da cineblog01.world",
-   "ultimo": "2026-10-05"
+   "ultimo": "2026-10-06"
   },
   "cineblog01.watch": {
    "primo": "2026-09-28",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "cineblog01.world": {
    "primo": "2026-09-28",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
+  },
+  "cineblog01.wtf": {
+   "primo": "2026-10-06",
+   "fonte": "reindirizzamento da cineblog01.watch",
+   "ultimo": "2026-10-06"
   },
   "cinezo.org": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "eurostream.mom": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "eurostream.pics": {
    "primo": "2026-10-04",
    "fonte": "viewdb",
-   "ultimo": "2026-10-05"
+   "ultimo": "2026-10-06"
   },
   "filmpertutti.garden": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "filmsenzalimiti.study": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "guardaplay.info": {
    "primo": "2026-09-15",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "guardaplay.online": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "guardoserie.courses": {
@@ -113,82 +133,92 @@
   "guardoseries.shop": {
    "primo": "2026-10-03",
    "fonte": "viewdb",
-   "ultimo": "2026-10-05"
+   "ultimo": "2026-10-06"
   },
   "hydrahd.ws": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "mapple.fun": {
    "primo": "2026-09-18",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "mapplee.com": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "monochrome.tf": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "streamingcommunityz.academy": {
    "primo": "2026-09-15",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "streamingcommunityz.photography": {
    "primo": "2026-10-04",
    "fonte": "viewdb",
-   "ultimo": "2026-10-05"
+   "ultimo": "2026-10-06"
   },
   "streamingcommunityz.photos": {
    "primo": "2026-09-22",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "streamingcommunityz.pictures": {
    "primo": "2026-10-01",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
+  },
+  "streamingcommunityz.promo": {
+   "primo": "2026-10-06",
+   "fonte": "viewdb",
+   "ultimo": "2026-10-06"
   },
   "streamingcommunityz.taxi": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "streamingunity.fun": {
    "primo": "2026-10-01",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "streamingunity.win": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "tanti-film.beer": {
    "primo": "2026-09-22",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "tanti-film.casa": {
    "primo": "2026-10-01",
    "fonte": "reindirizzamento da tanti-film.beer",
-   "ultimo": "2026-10-05"
+   "ultimo": "2026-10-06"
   },
   "tanti-film.makeup": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   },
   "tanti-film.website": {
    "primo": "2026-09-16",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
+  },
+  "tanti-film.work": {
+   "primo": "2026-10-06",
+   "fonte": "reindirizzamento da tanti-film.beer",
+   "ultimo": "2026-10-06"
   },
   "tantifilm.online": {
    "primo": "2026-09-13",
@@ -197,9 +227,9 @@
   },
   "toonitalia.xyz": {
    "primo": "2026-09-13",
-   "ultimo": "2026-10-05",
+   "ultimo": "2026-10-06",
    "fonte": "viewdb"
   }
  },
- "ultimo_tracker_riuscito": "2026-10-05T10:38:22Z"
+ "ultimo_tracker_riuscito": "2026-10-06T10:31:32Z"
 }

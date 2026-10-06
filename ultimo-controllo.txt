@@ -1,5 +1,5 @@
-ultimo-controllo: 2026-10-05T10:38:24Z
+ultimo-controllo: 2026-10-06T10:31:42Z
 esito-tracker: ok, 15 domini
-ultimo-tracker-riuscito: 2026-10-05T10:38:22Z
-domini-pubblicati: 40
+ultimo-tracker-riuscito: 2026-10-06T10:31:32Z
+domini-pubblicati: 46
 sorgente: https://domains-tracker.server66.workers.dev/status
