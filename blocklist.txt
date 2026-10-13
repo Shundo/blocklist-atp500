@@ -1,5 +1,6 @@
 7movies.ac
 altadefinizione.fast
+altadefinizionex.life
 altadefinizionex.live
 altadefinizionex.me
 altadefinizionex.surf
@@ -9,12 +10,15 @@ cb01uno.club
 cb01uno.cyou
 cb01uno.homes
 cb01uno.top
+cb01uno.vip
 cb01uno.wiki
 cineblog001.cv
+cineblog001.delivery
 cineblog001.download
 cineblog001.tattoo
 cineblog01.boutique
 cineblog01.casa
+cineblog01.run
 cineblog01.watch
 cineblog01.world
 cineblog01.wtf
@@ -38,6 +42,7 @@ streamingcommunityz.photos
 streamingcommunityz.pictures
 streamingcommunityz.promo
 streamingcommunityz.rip
+streamingcommunityz.shiksha
 streamingcommunityz.taxi
 streamingunity.fun
 streamingunity.win
