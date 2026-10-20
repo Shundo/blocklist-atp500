@@ -1,10 +1,12 @@
 7movies.ac
 altadefinizione.fast
+altadefinizionex.forum
 altadefinizionex.life
 altadefinizionex.live
 altadefinizionex.me
 altadefinizionex.surf
 animeunity.so
+animeunity.to
 animeworld.ac
 cb01uno.club
 cb01uno.cyou
@@ -15,6 +17,7 @@ cb01uno.wiki
 cineblog001.cv
 cineblog001.delivery
 cineblog001.download
+cineblog001.loan
 cineblog001.tattoo
 cineblog01.boutique
 cineblog01.casa
@@ -31,12 +34,15 @@ guardaplay.cam
 guardaplay.info
 guardaplay.online
 guardoserie.courses
+guardoseries.cyou
 guardoseries.shop
+hydrahd.gd
 hydrahd.ws
 mapple.fun
 mapplee.com
 monochrome.tf
 streamingcommunityz.academy
+streamingcommunityz.build
 streamingcommunityz.photography
 streamingcommunityz.photos
 streamingcommunityz.pictures
@@ -49,6 +55,7 @@ streamingunity.win
 tanti-film.beer
 tanti-film.casa
 tanti-film.fit
+tanti-film.fun
 tanti-film.makeup
 tanti-film.website
 tanti-film.work
