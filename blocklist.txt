@@ -1,5 +1,6 @@
 7movies.ac
 altadefinizione.fast
+altadefinizionex.bar
 altadefinizionex.forum
 altadefinizionex.life
 altadefinizionex.live
@@ -20,6 +21,7 @@ cineblog001.delivery
 cineblog001.download
 cineblog001.loan
 cineblog001.men
+cineblog001.party
 cineblog001.tattoo
 cineblog01.boutique
 cineblog01.casa
@@ -48,6 +50,7 @@ mapple.fun
 mapplee.com
 monochrome.tf
 streamingcommunityz.academy
+streamingcommunityz.boo
 streamingcommunityz.build
 streamingcommunityz.day
 streamingcommunityz.photography
@@ -64,6 +67,7 @@ tanti-film.casa
 tanti-film.fit
 tanti-film.fun
 tanti-film.garden
+tanti-film.ink
 tanti-film.makeup
 tanti-film.website
 tanti-film.work
