@@ -1,4 +1,4 @@
-ultimo-controllo: 2026-11-05T11:10:55Z
+ultimo-controllo: 2026-11-06T11:08:37Z
 esito-tracker: ERRORE: irraggiungibile (HTTPError)
 ultimo-tracker-riuscito: 2026-10-20T08:41:39Z
 domini-pubblicati: 77
