@@ -30,6 +30,7 @@ cineblog01.digital
 cineblog01.guru
 cineblog01.run
 cineblog01.watch
+cineblog01.work
 cineblog01.world
 cineblog01.wtf
 cinezo.org
