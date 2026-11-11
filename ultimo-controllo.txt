@@ -1,5 +1,5 @@
-ultimo-controllo: 2026-11-10T11:24:18Z
+ultimo-controllo: 2026-11-11T11:12:13Z
 esito-tracker: ERRORE: irraggiungibile (HTTPError)
 ultimo-tracker-riuscito: 2026-10-20T08:41:39Z
-domini-pubblicati: 82
+domini-pubblicati: 83
 sorgente: https://domains-tracker.server66.workers.dev/status
