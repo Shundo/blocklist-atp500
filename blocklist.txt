@@ -24,6 +24,7 @@ cineblog001.download
 cineblog001.loan
 cineblog001.men
 cineblog001.party
+cineblog001.run
 cineblog001.tattoo
 cineblog001.tires
 cineblog01.beer
@@ -60,6 +61,7 @@ monochrome.tf
 streamingcommunityz.academy
 streamingcommunityz.boo
 streamingcommunityz.build
+streamingcommunityz.dad
 streamingcommunityz.day
 streamingcommunityz.nexus
 streamingcommunityz.photography
@@ -80,6 +82,7 @@ tanti-film.garden
 tanti-film.ink
 tanti-film.makeup
 tanti-film.rest
+tanti-film.tattoo
 tanti-film.website
 tanti-film.work
 tantifilm.online
