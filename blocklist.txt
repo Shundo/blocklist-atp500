@@ -31,6 +31,7 @@ cineblog01.beer
 cineblog01.boutique
 cineblog01.casa
 cineblog01.digital
+cineblog01.fun
 cineblog01.guru
 cineblog01.run
 cineblog01.watch
