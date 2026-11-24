@@ -18,6 +18,7 @@ cb01uno.top
 cb01uno.vip
 cb01uno.wiki
 ccineblog01.rest
+cineblog001.cafe
 cineblog001.cv
 cineblog001.delivery
 cineblog001.download
@@ -65,6 +66,7 @@ streamingcommunityz.boo
 streamingcommunityz.build
 streamingcommunityz.dad
 streamingcommunityz.day
+streamingcommunityz.mov
 streamingcommunityz.nexus
 streamingcommunityz.photography
 streamingcommunityz.photos
@@ -83,6 +85,7 @@ tanti-film.fun
 tanti-film.garden
 tanti-film.ink
 tanti-film.makeup
+tanti-film.my
 tanti-film.rest
 tanti-film.tattoo
 tanti-film.website
