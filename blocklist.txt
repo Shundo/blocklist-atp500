@@ -18,6 +18,7 @@ cb01uno.top
 cb01uno.vip
 cb01uno.wiki
 ccineblog01.rest
+cine-blog01.uno
 cineblog001.cafe
 cineblog001.cv
 cineblog001.delivery
